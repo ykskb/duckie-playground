@@ -1,0 +1,30 @@
+<a href="/"><h1>Duckie Playground</h1></a>
+
+<label for="datasource">Data source:</label>
+
+<select name="datasource" id="datasource" onchange="window.location.replace('/?datasource=' + this.value)">
+    <option value="">Select data source</option>
+    {{range $src := .DataSources}}
+        <option value={{$src}} {{if eq $src $.SelectedSource}} selected {{else}} {{end}}>{{$src}}</option>
+    {{end}}
+</select>
+
+<form action="/query" method="POST">
+    <div><textarea name="query" rows="5" cols="50">{{printf "%s" .Query}}</textarea></div>
+    <div><input type="submit" value="Execute" {{if not .SelectedSource }} disabled {{else}} {{end}}></div>
+    <input type="hidden" name="datasource" value="{{.SelectedSource}}">
+</form>
+
+<table>
+    <tr>
+        {{range $col_name := .Columns}}
+            <th>{{$col_name}}</th>
+        {{end}}
+    </tr>
+    {{range $row := .Results}}
+        <tr>{{range $col := $row}}
+                <td>{{$col}}</td>
+            {{end}}
+        </tr>
+    {{end}}
+</ol>
