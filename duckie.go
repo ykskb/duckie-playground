@@ -80,11 +80,11 @@ func queryPageHandler(w http.ResponseWriter, r *http.Request, title string) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	if len(dataSource) > 0 {
+		// Data source is selected, so let's run DESCRIBE
 		page.Query = fmt.Sprintf("DESCRIBE SELECT * FROM %s", dataSource)
 		results, err := describeSource(dataSource)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-
 		}
 		page.Results = results
 	} else {
@@ -101,6 +101,7 @@ func queryHandler(w http.ResponseWriter, r *http.Request, title string) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
+	// Parse query
 	q := r.FormValue("query")
 	stmt, err := sqlparser.Parse(q)
 	if err != nil {
@@ -108,24 +109,27 @@ func queryHandler(w http.ResponseWriter, r *http.Request, title string) {
 		return
 	}
 
+	// Check SELECT statement
 	select_stmt, ok := stmt.(*sqlparser.Select)
 	if !ok {
 		http.Error(w, "Not a SELECT statement.", http.StatusInternalServerError)
 		return
 	}
 
+	// Get columns so we can allocate memory for results
 	columns := []string{}
 	for _, expr := range select_stmt.SelectExprs {
 		switch col := expr.(type) {
 		case *sqlparser.AliasedExpr:
-			// col.Expr is the actual expression (e.g., column name or function call)
+			// Try to assert ColName type
 			if colName, ok := col.Expr.(*sqlparser.ColName); ok {
 				columns = append(columns, colName.Name.String())
 			} else {
-				// Handle expressions like COUNT(*), CONCAT(name, last_name), etc.
+				// Expressions like COUNT(*), CONCAT(name, last_name), etc.
 				columns = append(columns, sqlparser.String(col.Expr))
 			}
 		case *sqlparser.StarExpr:
+			// Case of `SELECT *` so let's get all columns from DESCRIBE
 			describeResults, err := describeSource(selectedSource)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -147,10 +151,6 @@ func queryHandler(w http.ResponseWriter, r *http.Request, title string) {
 	page.Columns = columns
 	page.Results = results
 	page.SelectedSource = selectedSource
-
-	// API:
-	// w.Header().Set("Content-Type", "application/json")
-	// json.NewEncoder(w).Encode("{\"test\": \"success\"}")
 	renderTemplate(w, "query", page)
 }
 
@@ -179,6 +179,5 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 func main() {
 	http.HandleFunc("/", makeHandler(queryPageHandler))
 	http.HandleFunc("/query", makeHandler(queryHandler))
-
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }

@@ -16,7 +16,7 @@ So I made a very simple web service in Go that hosts data and runs SQL through D
 
 * Scalability unknown:
 
-    Each request creates DuckDB instance within goroutine, but scalability is unknown. I'd imagine heavy queries can easily use up RAM and CPUs, depending on workloads.
+    Each request creates DuckDB instance within goroutine, so scalability is unknown. I'd imagine heavy queries can easily use up RAM and CPUs depending on workloads.
 
 * No Web API:
 
